@@ -48,7 +48,7 @@ function App() {
   const themes = [
     { key: 'tree_wood',    label: '잔디 나무', desc: '나뭇잎에 당신의 잔디를 심어요' },
     { key: 'space',   label: '우주',   desc: '별빛처럼 반짝이게' },
-    { key: 'blossom', label: '벚꽃',   desc: '봄처럼 화사하게'  },
+    { key: 'ocean', label: '바다',   desc: '바다다다다닷'  },
   ];
 
   // 전체 커밋 합산
@@ -211,7 +211,7 @@ function App() {
                   boxSizing: 'border-box',
                 }}
               >
-                <GrassGraph contributions={data} theme={graphTheme} />
+                <GrassGraph contributions={data} theme={graphTheme} totalCommits={totalCommits} />
               </div>
             )}
 
