@@ -10,6 +10,8 @@ function App() {
   const [theme, setTheme] = useState(null);
   const [showGraph, setShowGraph] = useState(false);
   const [graphTheme, setGraphTheme] = useState('minimal');
+  // 검색 시점의 아이디를 고정 저장 — 이후 입력칸 변경과 무관하게 유지
+  const [searchedUsername, setSearchedUsername] = useState('');
   const graphRef = useRef(null);
 
   const fetchGitHubData = async () => {
@@ -20,7 +22,8 @@ function App() {
       if (!response.ok) throw new Error('사용자를 찾을 수 없습니다');
       const result = await response.json();
       setData(result);
-      setShowGraph(true); // 검색 즉시 기본 잔디 표시
+      setSearchedUsername(username.trim()); // 검색한 아이디 고정
+      setShowGraph(true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -36,7 +39,7 @@ function App() {
       useCORS: true,
     });
     const link = document.createElement('a');
-    link.download = `${username}-github-grass.png`;
+    link.download = `${searchedUsername}-github-grass.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
@@ -46,21 +49,20 @@ function App() {
   };
 
   const themes = [
-    { key: 'tree_wood',    label: '잔디 나무', desc: '나뭇잎에 당신의 잔디를 심어요' },
-    { key: 'space',   label: '우주',   desc: '별빛처럼 반짝이게' },
-    { key: 'ocean', label: '바다',   desc: '바다다다다닷'  },
+    { key: 'tree_wood', label: '잔디 나무', desc: '나뭇잎에 당신의 잔디를 심어요' },
+    { key: 'space',     label: '우주',     desc: '별빛처럼 반짝이게' },
+    { key: 'ocean',     label: '바다',     desc: '바다다다다닷' },
   ];
 
-  // 전체 커밋 합산
   const totalCommits = data ? Object.values(data.total).reduce((a, b) => a + b, 0) : 0;
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: '48px 24px', boxSizing: 'border-box', width: '100vw' }}>
       <div style={{ maxWidth: '760px', margin: '0 auto', width: '100%' }}>
 
-        {/* 헤더 */}
+        {/* 헤더 — 타이틀 22px → 16px */}
         <div style={{ marginBottom: '48px' }}>
-          <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#0f172a', marginBottom: '6px', letterSpacing: '-0.3px' }}>
+          <h1 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '6px', letterSpacing: '-0.3px' }}>
             잔꾸
           </h1>
           <p style={{ fontSize: '14px', color: '#94a3b8' }}>
@@ -134,11 +136,10 @@ function App() {
               padding: '18px 24px',
               marginBottom: '24px',
             }}>
-              {/* 유저명 + 프로필 사진 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                 <img
-                  src={`https://github.com/${username}.png?size=56`}
-                  alt={username}
+                  src={`https://github.com/${searchedUsername}.png?size=56`}
+                  alt={searchedUsername}
                   style={{
                     width: '36px',
                     height: '36px',
@@ -147,12 +148,10 @@ function App() {
                     border: '1.5px solid #e2e8f0',
                   }}
                   onError={(e) => {
-                    // 이미지 로드 실패 시 이니셜로 대체
                     e.target.style.display = 'none';
                     e.target.nextSibling.style.display = 'flex';
                   }}
                 />
-                {/* 이미지 실패 fallback */}
                 <div style={{
                   display: 'none',
                   width: '36px',
@@ -166,15 +165,14 @@ function App() {
                   color: '#64748b',
                   flexShrink: 0,
                 }}>
-                  {username.charAt(0).toUpperCase()}
+                  {searchedUsername.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{username}</span>
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{searchedUsername}</span>
                   <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: '6px' }}>GitHub</span>
                 </div>
               </div>
 
-              {/* 통계 3개 */}
               <div style={{ display: 'flex', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
                 {[
                   { value: totalCommits.toLocaleString(), label: '전체 커밋' },
@@ -186,18 +184,14 @@ function App() {
                     textAlign: 'center',
                     borderRight: i < arr.length - 1 ? '1px solid #f1f5f9' : 'none',
                   }}>
-                    <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px' }}>
-                      {label}
-                    </div>
-                    <div style={{ fontSize: '17px', fontWeight: '700', color: '#0f172a' }}>
-                      {value}
-                    </div>
+                    <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px' }}>{label}</div>
+                    <div style={{ fontSize: '17px', fontWeight: '700', color: '#0f172a' }}>{value}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* 기본 잔디 그래프 (항상 표시) */}
+            {/* 잔디 그래프 */}
             {showGraph && (
               <div
                 ref={graphRef}
@@ -211,7 +205,12 @@ function App() {
                   boxSizing: 'border-box',
                 }}
               >
-                <GrassGraph contributions={data} theme={graphTheme} totalCommits={totalCommits} />
+                <GrassGraph
+                  username={searchedUsername}
+                  contributions={data}
+                  theme={graphTheme}
+                  totalCommits={totalCommits}
+                />
               </div>
             )}
 
@@ -248,30 +247,29 @@ function App() {
               </div>
             </div>
 
-{/* 잔디 꾸미기 버튼 — 항상 표시, 테마 미선택 시 비활성 */}
-<button
-  onClick={handleDecorate}
-  disabled={!theme}
-  onMouseEnter={(e) => theme && (e.target.style.backgroundColor = '#1d4ed8')}
-  onMouseLeave={(e) => theme && (e.target.style.backgroundColor = '#2563eb')}
-  style={{
-    width: '100%',
-    padding: '12px',
-    backgroundColor: theme ? '#2563eb' : '#e2e8f0',
-    color: theme ? '#fff' : '#94a3b8',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: theme ? 'pointer' : 'not-allowed',
-    transition: 'background-color 0.15s',
-    marginBottom: '16px',
-    boxSizing: 'border-box',
-  }}
->
-  잔디 꾸미기
-</button>
-                 
+            {/* 잔디 꾸미기 버튼 */}
+            <button
+              onClick={handleDecorate}
+              disabled={!theme}
+              onMouseEnter={(e) => theme && (e.target.style.backgroundColor = '#1d4ed8')}
+              onMouseLeave={(e) => theme && (e.target.style.backgroundColor = '#2563eb')}
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: theme ? '#2563eb' : '#e2e8f0',
+                color: theme ? '#fff' : '#94a3b8',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: theme ? 'pointer' : 'not-allowed',
+                transition: 'background-color 0.15s',
+                marginBottom: '16px',
+                boxSizing: 'border-box',
+              }}
+            >
+              잔디 꾸미기
+            </button>
 
             {/* 이미지 저장 */}
             <button

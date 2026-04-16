@@ -12,7 +12,7 @@ const THEMES = {
   },
   tree_wood: {
     bg: '#e8f5e9',
-    empty: '#d1fae5',
+    empty: '#b8dbc9',   // 기존 #a5d6a7 → 더 밝게
     colors: ['#86efac', '#22c55e', '#16a34a', '#14532d'],
     cellShape: 'circle',
     labelColor: '#166534',
@@ -39,7 +39,24 @@ const THEMES = {
   },
 };
 
-function GrassGraph({ contributions, theme = 'minimal' }) {
+function getSizeScale(commits) {
+  if (commits <= 100)  return 0.40;
+  if (commits <= 500)  return 0.60;
+  if (commits <= 1000) return 0.80;
+  if (commits <= 3000) return 1.00;
+  return 1.20;
+}
+
+function getTreeMessage(commits) {
+  if (commits <= 1)    return '';
+  if (commits <= 100)  return '나뭇잎이 곧 떨어지겠어요..';
+  if (commits <= 500)  return '나무가 점점 커지고 있어요!';
+  if (commits <= 1000) return '나무가 가득 차 보여요!';
+  if (commits <= 3000) return '나무가 거대해요..!';
+  return '축하드려요! 최대 크기입니다.';
+}
+
+function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, username = '' }) {
   const [tooltip, setTooltip] = useState(null);
   const themeConfig = THEMES[theme] || THEMES.minimal;
 
@@ -53,13 +70,10 @@ function GrassGraph({ contributions, theme = 'minimal' }) {
         const d = new Date(day.date);
         return d >= oneYearAgo && d <= today;
       })
-      .sort((a, b) => a.date < b.date ? -1 : 1);
+      .sort((a, b) => (a.date < b.date ? -1 : 1));
   }, [contributions]);
 
-  // totalCommits 계산 추가
-  const totalCommits = useMemo(() => {
-    return recentDays.reduce((sum, day) => sum + day.count, 0);
-  }, [recentDays]);
+  const sizeScale = useMemo(() => getSizeScale(totalCommits), [totalCommits]);
 
   const getColor = (count) => {
     if (count === 0) return themeConfig.empty;
@@ -101,34 +115,34 @@ function GrassGraph({ contributions, theme = 'minimal' }) {
     return labels;
   }, [weeks]);
 
+  // ─── 나무 테마: 잎 위치 계산 ─────────────────────────────────────────────
   const leafPositions = useMemo(() => {
     if (theme !== 'tree_wood') return [];
 
     const activeDays = recentDays.filter(d => d.count > 0);
-    const sizeScale = Math.min(Math.max(activeDays.length / 200, 0.4), 1.8);
 
-    const rx = 115 * sizeScale;
-    const ry = 85  * sizeScale;
-    const spacing = 11;
+    const r       = 85 * sizeScale;
+    const spacing = 9.5; // 기존 11 → 8 (더 빽빽하게)
 
     const gridPositions = [];
-    for (let row = -Math.ceil(ry / spacing); row <= Math.ceil(ry / spacing); row++) {
-      for (let col = -Math.ceil(rx / spacing); col <= Math.ceil(rx / spacing); col++) {
+    for (let row = -Math.ceil(r / spacing); row <= Math.ceil(r / spacing); row++) {
+      for (let col = -Math.ceil(r / spacing); col <= Math.ceil(r / spacing); col++) {
         const x = col * spacing + (row % 2 === 0 ? 0 : spacing / 2);
         const y = row * spacing;
-        if ((x / rx) ** 2 + (y / ry) ** 2 <= 1) {
+        if (x * x + y * y <= r * r) {
           gridPositions.push({ x, y });
         }
       }
     }
 
+    gridPositions.sort((a, b) => (a.x * a.x + a.y * a.y) - (b.x * b.x + b.y * b.y));
+
     return activeDays.slice(0, gridPositions.length).map((day, i) => ({
       ...day,
       x: gridPositions[i].x,
       y: gridPositions[i].y,
-      scale: sizeScale,
     }));
-  }, [recentDays, theme]);
+  }, [recentDays, theme, sizeScale]);
 
   if (!recentDays || recentDays.length === 0) {
     return (
@@ -138,20 +152,22 @@ function GrassGraph({ contributions, theme = 'minimal' }) {
     );
   }
 
-  // ===== 나무 테마 렌더링 =====
+  // ===== 나무 테마 렌더링 =====================================================
   if (theme === 'tree_wood') {
-    const activeDays   = recentDays.filter(d => d.count > 0);
-    const hasCommits   = activeDays.length > 0;
-    const sizeScale    = leafPositions[0]?.scale ?? 0.4;
-    const W            = 500;
-    const H            = 420;
-    const cx           = W / 2;
-    const crownCY      = 170;
-    const trunkW       = Math.round(18 + sizeScale * 6);
-    const trunkH       = Math.round(70 + sizeScale * 20);
-    const trunkTop     = crownCY + Math.round(75 * sizeScale);
-    const groundY      = trunkTop + trunkH;
-    const groundH      = H - groundY;
+    const activeDays = recentDays.filter(d => d.count > 0);
+    const hasCommits = activeDays.length > 0;
+    const message    = getTreeMessage(totalCommits);
+
+    const W        = 500;
+    const H        = 460;
+    const cx       = W / 2;
+    const crownR   = 85 * sizeScale;
+    const crownCY  = 200;
+    const trunkW   = Math.round(14 + sizeScale * 6);
+    const trunkH   = Math.round(60 + sizeScale * 12);
+    const trunkTop = Math.round(crownCY + crownR) - 10;
+    const groundY  = trunkTop + trunkH;
+    const groundH  = H - groundY;
 
     return (
       <div style={{ backgroundColor: '#e8f5e9', borderRadius: '12px', padding: '16px', position: 'relative' }}>
@@ -164,11 +180,31 @@ function GrassGraph({ contributions, theme = 'minimal' }) {
           {/* 하늘 */}
           <rect x={0} y={0} width={W} height={groundY} fill="#dbeafe" />
 
+          {/* 유저 이름 — 왼쪽 상단 */}
+          <text
+            x={18} y={24}
+            fontSize="11" fill="#334155" fontWeight="700"
+            fontFamily="system-ui, sans-serif"
+          >
+            {username}님의 GitHub
+          </text>
+
+          {/* 상태 메시지 */}
+          {message !== '' && (
+            <text
+              x={cx} y={46}
+              fontSize="12" fill="#166534" fontWeight="700"
+              textAnchor="middle" fontFamily="system-ui, sans-serif"
+            >
+              {message}
+            </text>
+          )}
+
           {/* 구름 */}
-          <ellipse cx={80}  cy={50} rx={38} ry={18} fill="white" opacity="0.7" />
-          <ellipse cx={110} cy={42} rx={28} ry={16} fill="white" opacity="0.7" />
-          <ellipse cx={400} cy={65} rx={32} ry={15} fill="white" opacity="0.6" />
-          <ellipse cx={428} cy={57} rx={22} ry={13} fill="white" opacity="0.6" />
+          <ellipse cx={75}  cy={78} rx={36} ry={16} fill="white" opacity="0.75" />
+          <ellipse cx={105} cy={70} rx={26} ry={14} fill="white" opacity="0.75" />
+          <ellipse cx={400} cy={88} rx={30} ry={14} fill="white" opacity="0.65" />
+          <ellipse cx={426} cy={80} rx={20} ry={12} fill="white" opacity="0.65" />
 
           {/* 땅 */}
           <rect x={0} y={groundY}     width={W} height={groundH} fill="#86efac" />
@@ -176,22 +212,30 @@ function GrassGraph({ contributions, theme = 'minimal' }) {
           <rect x={0} y={groundY + 5} width={W} height={4}       fill="#22c55e" opacity="0.5" />
 
           {/* 기둥 그림자 */}
-          <rect x={cx - trunkW / 2 + 3} y={trunkTop + 4} width={trunkW} height={trunkH} rx={4} fill="#000" opacity="0.08" />
-          {/* 나무 기둥 */}
-          <rect x={cx - trunkW / 2} y={trunkTop} width={trunkW} height={trunkH} rx={4} fill="#92400e" />
+          <rect
+            x={cx - trunkW / 2 + 3} y={trunkTop + 4}
+            width={trunkW} height={trunkH}
+            rx={4} fill="#000" opacity="0.08"
+          />
+          {/* 기둥 */}
+          <rect
+            x={cx - trunkW / 2} y={trunkTop}
+            width={trunkW} height={trunkH}
+            rx={4} fill="#92400e"
+          />
           {/* 기둥 하이라이트 */}
-          <rect x={cx - trunkW / 2 + 4} y={trunkTop + 10} width={Math.max(trunkW / 4, 4)} height={trunkH - 20} rx={2} fill="#fbbf24" opacity="0.25" />
+          <rect
+            x={cx - trunkW / 2 + 4} y={trunkTop + 10}
+            width={Math.max(Math.floor(trunkW / 4), 3)} height={trunkH - 20}
+            rx={2} fill="#fbbf24" opacity="0.25"
+          />
 
-          {/* 커밋 없을 때 메시지 */}
+          {/* 커밋 없을 때 */}
           {!hasCommits && (
             <text
-              x={cx}
-              y={crownCY}
-              fontSize="13"
-              fill="#94a3b8"
-              fontWeight="500"
-              textAnchor="middle"
-              fontFamily="system-ui, sans-serif"
+              x={cx} y={crownCY}
+              fontSize="13" fill="#94a3b8" fontWeight="500"
+              textAnchor="middle" fontFamily="system-ui, sans-serif"
             >
               잔디가 부족해요..
             </text>
@@ -199,46 +243,39 @@ function GrassGraph({ contributions, theme = 'minimal' }) {
 
           {/* 잎 그림자 */}
           {leafPositions.map((day, i) => (
-            <circle key={`shadow-${i}`} cx={cx + day.x + 2} cy={crownCY + day.y + 2} r={5} fill="#000" opacity="0.06" />
+            <circle
+              key={`shadow-${i}`}
+              cx={cx + day.x + 2} cy={crownCY + day.y + 2}
+              r={4} fill="#000" opacity="0.06"
+            />
           ))}
 
           {/* 잎사귀 */}
           {leafPositions.map((day, i) => (
             <circle
               key={`leaf-${i}`}
-              cx={cx + day.x}
-              cy={crownCY + day.y}
-              r={5}
-              fill={getColor(day.count)}
-              opacity={0.92}
+              cx={cx + day.x} cy={crownCY + day.y}
+              r={4} fill={getColor(day.count)} opacity={0.92}
               onMouseEnter={(e) => setTooltip({ day, x: e.clientX, y: e.clientY })}
               onMouseLeave={() => setTooltip(null)}
               style={{ cursor: 'pointer' }}
             />
           ))}
 
-          {/* 총 커밋 텍스트 */}
+          {/* 총 커밋 수 */}
           <text
-            x={cx}
-            y={groundY + 22}
-            fontSize="10"
-            fill="#166534"
-            fontWeight="600"
-            textAnchor="middle"
-            fontFamily="system-ui, sans-serif"
+            x={cx} y={groundY + 40}
+            fontSize="12" fill="#166534" fontWeight="600"
+            textAnchor="middle" fontFamily="system-ui, sans-serif"
           >
             총 {totalCommits.toLocaleString()}커밋
           </text>
 
           {/* 하단 문구 */}
           <text
-            x={cx}
-            y={H - 8}
-            fontSize="10.5"
-            fill="#166534"
-            fontWeight="600"
-            textAnchor="middle"
-            fontFamily="system-ui, sans-serif"
+            x={cx} y={H - 10}
+            fontSize="11" fill="#166534" fontWeight="600"
+            textAnchor="middle" fontFamily="system-ui, sans-serif"
           >
             잔디를 많이 모을수록 나무가 더 커져요!
           </text>
@@ -263,7 +300,11 @@ function GrassGraph({ contributions, theme = 'minimal' }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '8px', fontSize: '11px', color: '#166534', fontWeight: '500' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: '6px', marginTop: '8px',
+          fontSize: '11px', color: '#166534', fontWeight: '500',
+        }}>
           <span>현생</span>
           <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
             {[themeConfig.empty, ...themeConfig.colors].map((c, i) => (
@@ -278,7 +319,7 @@ function GrassGraph({ contributions, theme = 'minimal' }) {
     );
   }
 
-  // ===== 기본 테마들 렌더링 =====
+  // ===== 기본 테마들 렌더링 ====================================================
   const LABEL_HEIGHT = 18;
   const CELL_GAP     = 14;
   const CELL_SIZE    = 12;
@@ -298,7 +339,13 @@ function GrassGraph({ contributions, theme = 'minimal' }) {
     if (themeConfig.cellShape === 'circle') {
       return <circle key={`${weekIdx}-${dayIdx}`} {...commonProps} cx={x + 6} cy={y + 6} r={5} />;
     }
-    return <rect key={`${weekIdx}-${dayIdx}`} {...commonProps} x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} rx={themeConfig.cellRadius} />;
+    return (
+      <rect
+        key={`${weekIdx}-${dayIdx}`} {...commonProps}
+        x={x} y={y} width={CELL_SIZE} height={CELL_SIZE}
+        rx={themeConfig.cellRadius}
+      />
+    );
   };
 
   return (
@@ -309,6 +356,15 @@ function GrassGraph({ contributions, theme = 'minimal' }) {
         style={{ display: 'block', maxWidth: '100%' }}
         preserveAspectRatio="xMinYMid meet"
       >
+        {/* 유저 이름 */}
+        <text
+          x={10} y={LABEL_HEIGHT - 12}
+          fontSize="9" fill={themeConfig.labelColor} fontWeight="800"
+          fontFamily="system-ui, sans-serif"
+        >
+          {username}님의 GitHub
+        </text>
+
         {theme === 'space' && [...Array(30)].map((_, i) => (
           <circle
             key={`star-${i}`}
@@ -335,10 +391,8 @@ function GrassGraph({ contributions, theme = 'minimal' }) {
                 strokeWidth="0.8"
               />
               <text
-                x={x + 3}
-                y={LABEL_HEIGHT - 5}
-                fontSize="7"
-                fill={themeConfig.labelColor}
+                x={x + 3} y={LABEL_HEIGHT - 5}
+                fontSize="7" fill={themeConfig.labelColor}
                 fontWeight={isYear ? '700' : '400'}
                 fontFamily="system-ui, sans-serif"
               >
@@ -373,7 +427,11 @@ function GrassGraph({ contributions, theme = 'minimal' }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '10px', fontSize: '11px', color: themeConfig.labelColor }}>
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        gap: '6px', marginTop: '10px',
+        fontSize: '11px', color: themeConfig.labelColor,
+      }}>
         <span>현생</span>
         <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
           {[themeConfig.empty, ...themeConfig.colors].map((c, i) => (
