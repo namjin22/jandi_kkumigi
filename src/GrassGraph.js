@@ -170,7 +170,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     const groundH  = H - groundY;
 
     return (
-      <div style={{ backgroundColor: '#e8f5e9', borderRadius: '12px', padding: '16px', position: 'relative' }}>
+      <div style={{ backgroundColor: '#ecfbfc', borderRadius: '12px', padding: '16px', position: 'relative' }}>
         <svg
           viewBox={`0 0 ${W} ${H}`}
           width="100%"
