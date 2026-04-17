@@ -3,16 +3,15 @@ import GrassGraph from './GrassGraph';
 import html2canvas from 'html2canvas';
 
 function App() {
-  const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState(null);
-  const [error, setError] = useState('');
-  const [theme, setTheme] = useState(null);
-  const [showGraph, setShowGraph] = useState(false);
-  const [graphTheme, setGraphTheme] = useState('minimal');
-  // 검색 시점의 아이디를 고정 저장 — 이후 입력칸 변경과 무관하게 유지
+  const [username, setUsername]           = useState('');
+  const [loading, setLoading]             = useState(false);
+  const [data, setData]                   = useState(null);
+  const [error, setError]                 = useState('');
+  const [theme, setTheme]                 = useState(null);
+  const [showGraph, setShowGraph]         = useState(false);
+  const [graphTheme, setGraphTheme]       = useState('minimal');
   const [searchedUsername, setSearchedUsername] = useState('');
-  const graphRef = useRef(null);
+  const exportRef = useRef(null); // 이미지 저장 전용 (숨겨진) ref
 
   const fetchGitHubData = async () => {
     if (!username.trim()) { setError('GitHub 아이디를 입력해 주세요!'); return; }
@@ -22,7 +21,7 @@ function App() {
       if (!response.ok) throw new Error('사용자를 찾을 수 없습니다');
       const result = await response.json();
       setData(result);
-      setSearchedUsername(username.trim()); // 검색한 아이디 고정
+      setSearchedUsername(username.trim());
       setShowGraph(true);
     } catch (err) {
       setError(err.message);
@@ -32,8 +31,8 @@ function App() {
   };
 
   const downloadImage = async () => {
-    if (!graphRef.current) return;
-    const canvas = await html2canvas(graphRef.current, {
+    if (!exportRef.current) return;
+    const canvas = await html2canvas(exportRef.current, {
       backgroundColor: null,
       scale: 2,
       useCORS: true,
@@ -50,7 +49,7 @@ function App() {
 
   const themes = [
     { key: 'tree_wood', label: '잔디 나무', desc: '나뭇잎에 당신의 잔디를 심어요' },
-    { key: 'space',     label: '우주',     desc: '별빛처럼 반짝이게' },
+    { key: 'space',     label: '달',     desc: '잔디로 가득 찬 달을 만들어요' },
     { key: 'ocean',     label: '바다',     desc: '바다다다다닷' },
   ];
 
@@ -60,7 +59,7 @@ function App() {
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: '48px 24px', boxSizing: 'border-box', width: '100vw' }}>
       <div style={{ maxWidth: '760px', margin: '0 auto', width: '100%' }}>
 
-        {/* 헤더 — 타이틀 22px → 16px */}
+        {/* 헤더 */}
         <div style={{ marginBottom: '48px' }}>
           <h1 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '6px', letterSpacing: '-0.3px' }}>
             잔꾸
@@ -83,16 +82,11 @@ function App() {
             onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
             onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
             style={{
-              flex: 1,
-              padding: '11px 16px',
-              border: '1.5px solid #e2e8f0',
-              borderRadius: '8px',
-              fontSize: '14px',
-              outline: 'none',
-              backgroundColor: '#fff',
-              color: '#0f172a',
-              transition: 'border-color 0.15s',
-              minWidth: 0,
+              flex: 1, padding: '11px 16px',
+              border: '1.5px solid #e2e8f0', borderRadius: '8px',
+              fontSize: '14px', outline: 'none',
+              backgroundColor: '#fff', color: '#0f172a',
+              transition: 'border-color 0.15s', minWidth: 0,
             }}
           />
           <button
@@ -103,15 +97,11 @@ function App() {
             style={{
               padding: '11px 22px',
               backgroundColor: loading ? '#94a3b8' : '#2563eb',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
+              color: '#fff', border: 'none', borderRadius: '8px',
+              fontSize: '14px', fontWeight: '600',
               cursor: loading ? 'not-allowed' : 'pointer',
               transition: 'background-color 0.15s',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
+              whiteSpace: 'nowrap', flexShrink: 0,
             }}
           >
             {loading ? '불러오는 중...' : '검색하기'}
@@ -130,40 +120,20 @@ function App() {
 
             {/* 프로필 카드 */}
             <div style={{
-              backgroundColor: '#fff',
-              border: '1.5px solid #e2e8f0',
-              borderRadius: '10px',
-              padding: '18px 24px',
-              marginBottom: '24px',
+              backgroundColor: '#fff', border: '1.5px solid #e2e8f0',
+              borderRadius: '10px', padding: '18px 24px', marginBottom: '24px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                 <img
                   src={`https://github.com/${searchedUsername}.png?size=56`}
                   alt={searchedUsername}
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    border: '1.5px solid #e2e8f0',
-                  }}
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'flex';
-                  }}
+                  style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #e2e8f0' }}
+                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                 />
                 <div style={{
-                  display: 'none',
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  backgroundColor: '#e2e8f0',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  color: '#64748b',
-                  flexShrink: 0,
+                  display: 'none', width: '36px', height: '36px', borderRadius: '50%',
+                  backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '13px', fontWeight: '600', color: '#64748b', flexShrink: 0,
                 }}>
                   {searchedUsername.charAt(0).toUpperCase()}
                 </div>
@@ -180,8 +150,7 @@ function App() {
                   { value: `${Object.keys(data.total).length}년`, label: '잡힌 지' },
                 ].map(({ value, label }, i, arr) => (
                   <div key={label} style={{
-                    flex: 1,
-                    textAlign: 'center',
+                    flex: 1, textAlign: 'center',
                     borderRight: i < arr.length - 1 ? '1px solid #f1f5f9' : 'none',
                   }}>
                     <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px' }}>{label}</div>
@@ -191,17 +160,35 @@ function App() {
               </div>
             </div>
 
-            {/* 잔디 그래프 */}
+            {/* 화면에 표시되는 그래프 (레전드 포함) */}
+            {showGraph && (
+              <div style={{
+                backgroundColor: '#fff', border: '1.5px solid #e2e8f0',
+                borderRadius: '12px', padding: '24px', marginBottom: '24px',
+                width: '100%', boxSizing: 'border-box',
+              }}>
+                <GrassGraph
+                  username={searchedUsername}
+                  contributions={data}
+                  theme={graphTheme}
+                  totalCommits={totalCommits}
+                  forExport={false}
+                />
+              </div>
+            )}
+
+            {/* 이미지 저장 전용 (숨겨진 렌더링) — 레전드/하단문구 없음 */}
             {showGraph && (
               <div
-                ref={graphRef}
+                ref={exportRef}
                 style={{
+                  position: 'absolute',
+                  left: '-9999px',
+                  top: 0,
+                  width: '712px', // 760px - padding 48px
                   backgroundColor: '#fff',
-                  border: '1.5px solid #e2e8f0',
                   borderRadius: '12px',
                   padding: '24px',
-                  marginBottom: '24px',
-                  width: '100%',
                   boxSizing: 'border-box',
                 }}
               >
@@ -210,6 +197,7 @@ function App() {
                   contributions={data}
                   theme={graphTheme}
                   totalCommits={totalCommits}
+                  forExport={true}
                 />
               </div>
             )}
@@ -225,15 +213,11 @@ function App() {
                     key={key}
                     onClick={() => setTheme(theme === key ? null : key)}
                     style={{
-                      flex: 1,
-                      padding: '14px 12px',
-                      borderRadius: '8px',
+                      flex: 1, padding: '14px 12px', borderRadius: '8px',
                       border: '1.5px solid',
                       borderColor:     theme === key ? '#2563eb' : '#e2e8f0',
                       backgroundColor: theme === key ? '#eff6ff' : '#fff',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                      textAlign: 'left',
+                      cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left',
                     }}
                   >
                     <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '3px', color: theme === key ? '#2563eb' : '#1e293b' }}>
@@ -254,18 +238,14 @@ function App() {
               onMouseEnter={(e) => theme && (e.target.style.backgroundColor = '#1d4ed8')}
               onMouseLeave={(e) => theme && (e.target.style.backgroundColor = '#2563eb')}
               style={{
-                width: '100%',
-                padding: '12px',
+                width: '100%', padding: '12px',
                 backgroundColor: theme ? '#2563eb' : '#e2e8f0',
                 color: theme ? '#fff' : '#94a3b8',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
+                border: 'none', borderRadius: '8px',
+                fontSize: '14px', fontWeight: '600',
                 cursor: theme ? 'pointer' : 'not-allowed',
                 transition: 'background-color 0.15s',
-                marginBottom: '16px',
-                boxSizing: 'border-box',
+                marginBottom: '16px', boxSizing: 'border-box',
               }}
             >
               잔디 꾸미기
@@ -277,16 +257,11 @@ function App() {
               onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
               onMouseLeave={(e) => e.target.style.backgroundColor = '#fff'}
               style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: '#fff',
-                color: '#374151',
-                border: '1.5px solid #e2e8f0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'background-color 0.15s',
+                width: '100%', padding: '12px',
+                backgroundColor: '#fff', color: '#374151',
+                border: '1.5px solid #e2e8f0', borderRadius: '8px',
+                fontSize: '14px', fontWeight: '500',
+                cursor: 'pointer', transition: 'background-color 0.15s',
                 boxSizing: 'border-box',
               }}
             >
