@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 const THEMES = {
   minimal: {
@@ -19,28 +19,34 @@ const THEMES = {
     lineColor: '#bbf7d0',
     trunkColor: '#92400e',
   },
-  // ★ 달 테마: 어두운 남색 → 밝은 회청색 계열
   space: {
     bg: '#0f0f1a',
-    empty: '#151c2e',
-    colors: ['#1e3a6e', '#3d6aad', '#7aafd4', '#b8d8ec'],
+    empty: '#2a3040',
+    colors: [
+      '#6b7f96',
+      '#8fa5ba',
+      '#b4cad8',
+      '#d8eaf4',
+    ],
     cellShape: 'circle',
     cellRadius: 3,
     labelColor: '#818cf8',
     lineColor: '#2d2d44',
   },
-  ocean: {
-    bg: '#f0f9ff',
-    empty: '#e0f2fe',
-    colors: ['#7dd3fc', '#38bdf8', '#0284c7', '#0c4a6e'],
+  pixel: {
+    bg: '#0d0d0d',
+    empty: '#0a1a0a',
+    colors: ['#1a4d1a', '#00aa33', '#00ff41', '#ccff00'],
     cellShape: 'rect',
-    cellRadius: 3,
-    labelColor: '#0284c7',
-    lineColor: '#bae6fd',
+    cellRadius: 0,
+    labelColor: '#00ff41',
+    lineColor: '#0a2a0a',
   },
 };
 
 function getSizeScale(commits) {
+  if (commits === 0)   return 0.25;
+  if (commits <= 50)   return 0.30;
   if (commits <= 100)  return 0.40;
   if (commits <= 500)  return 0.60;
   if (commits <= 1000) return 0.80;
@@ -58,16 +64,67 @@ function getTreeMessage(commits) {
 }
 
 function getMoonMessage(commits) {
-  if (commits <= 1)    return '';
-  if (commits <= 100)  return '달이 아직 어둡네요..';
-  if (commits <= 500)  return '달이 조금씩 빛나고 있어요!';
-  if (commits <= 1000) return '달이 환하게 빛나요!';
+  if (commits === 0)   return '';
+  if (commits <= 100)  return '달이 어디 있나요..?';
+  if (commits <= 500)  return '달이 아직 작네요..';
+  if (commits <= 1000) return '달이 조금씩 빛나요!';
   if (commits <= 3000) return '달이 눈부시게 빛나요!';
   return '완벽한 보름달이에요!';
 }
 
+function getPixelMessage(commits) {
+  if (commits === 0)   return 'INSERT COIN(COMMIT)';
+  if (commits <= 100)  return 'LEVEL 1  슈퍼맨';
+  if (commits <= 500)  return 'LEVEL 2  슈퍼하이퍼맨';
+  if (commits <= 1000) return 'LEVEL 3  슈퍼하이퍼울트라맨';
+  if (commits <= 3000) return 'LEVEL 4  슈퍼하이퍼울트라짱짱맨';
+  return 'LEGEND.';
+}
+
+const MOON_R      = 110;
+const MOON_CELL_R = 3.2;
+const MOON_GAP    = MOON_CELL_R * 2.6;
+
+const SUN_X = 432;
+const SUN_Y = 48;
+
 function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, username = '', forExport = false }) {
   const [tooltip, setTooltip] = useState(null);
+
+  // ─── 달 테마: 무작위 위치에서 별이 나타났다 사라지는 동적 별 ──────────────
+  const [liveStars, setLiveStars] = useState([]);
+
+  useEffect(() => {
+    if (theme !== 'space') {
+      setLiveStars([]);
+      return;
+    }
+
+    const spawnStar = () => ({
+      id: `${Date.now()}-${Math.random()}`,
+      x: 6 + Math.random() * 488,
+      y: 6 + Math.random() * 374,
+      r: Math.random() > 0.72 ? 1.5 : Math.random() > 0.44 ? 1.0 : 0.6,
+      dur: 1.4 + Math.random() * 2.8,
+    });
+
+    setLiveStars(Array.from({ length: 55 }, spawnStar));
+
+    const interval = setInterval(() => {
+      setLiveStars(prev => {
+        const next = [...prev];
+        const count = Math.floor(Math.random() * 6) + 3;
+        for (let i = 0; i < count; i++) {
+          const idx = Math.floor(Math.random() * next.length);
+          next[idx] = spawnStar();
+        }
+        return next;
+      });
+    }, 900);
+
+    return () => clearInterval(interval);
+  }, [theme]);
+
   const themeConfig = THEMES[theme] || THEMES.minimal;
 
   const recentDays = useMemo(() => {
@@ -129,9 +186,8 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
   const leafPositions = useMemo(() => {
     if (theme !== 'tree_wood') return [];
     const activeDays = recentDays.filter(d => d.count > 0);
-    const r = 85 * sizeScale;
-    // ★ 5번: 간격 8 → 11 (잎 사이 여백 확보)
-    const spacing = 10;
+    const r       = 85 * sizeScale;
+    const spacing = 9.3;
     const gridPositions = [];
     for (let row = -Math.ceil(r / spacing); row <= Math.ceil(r / spacing); row++) {
       for (let col = -Math.ceil(r / spacing); col <= Math.ceil(r / spacing); col++) {
@@ -148,43 +204,73 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     }));
   }, [recentDays, theme, sizeScale]);
 
-  // ─── 달 테마: 별 위치 (고정) ─────────────────────────────────────────────
-  const stars = useMemo(() =>
-    Array.from({ length: 80 }, (_, i) => ({
-      x:     (i * 137 + 23) % 500,
-      y:     (i * 97  + 41) % 420,
-      r:     i % 5 === 0 ? 1.4 : i % 3 === 0 ? 1.0 : 0.6,
-      dur:   1.2 + (i % 7) * 0.3,
-      delay: (i % 9) * 0.2,
-    }))
-  , []);
-
-  // ─── 달 테마: 잔디 셀 위치 (원형 격자) ──────────────────────────────────
-  const moonCellPositions = useMemo(() => {
+  // ─── 달 테마: 셀 위치 + 잔디 데이터 매핑 ────────────────────────────────
+  const moonCells = useMemo(() => {
     if (theme !== 'space') return [];
-    const moonR = 110;
-    const gap   = 9;
-    const cellR = 3.5; // 셀 반지름 (원)
+
     const positions = [];
-    for (let row = -Math.ceil(moonR / gap); row <= Math.ceil(moonR / gap); row++) {
-      for (let col = -Math.ceil(moonR / gap); col <= Math.ceil(moonR / gap); col++) {
-        const x = col * gap;
-        const y = row * gap;
-        if (x * x + y * y <= (moonR - cellR) * (moonR - cellR)) {
+    for (let row = -Math.ceil(MOON_R / MOON_GAP); row <= Math.ceil(MOON_R / MOON_GAP); row++) {
+      for (let col = -Math.ceil(MOON_R / MOON_GAP); col <= Math.ceil(MOON_R / MOON_GAP); col++) {
+        const x = col * MOON_GAP;
+        const y = row * MOON_GAP;
+        if (x * x + y * y <= (MOON_R - MOON_CELL_R) * (MOON_R - MOON_CELL_R)) {
           positions.push({ x, y });
         }
       }
     }
-    return positions;
-  }, [theme]);
 
-  // ★ 2번: count > 0인 날만 매핑 (빈 셀 표시 안 함)
-  const moonDayMap = useMemo(() => {
-    if (theme !== 'space') return [];
-    return moonCellPositions
-      .map((pos, i) => ({ ...pos, day: recentDays[i] || null }))
-      .filter(({ day }) => day && day.count > 0);
-  }, [moonCellPositions, recentDays, theme]);
+    positions.sort((a, b) => (a.x * a.x + a.y * a.y) - (b.x * b.x + b.y * b.y));
+
+    const activeDays = recentDays.filter(d => d.count > 0);
+    const sliced = positions.slice(0, activeDays.length);
+
+    return sliced.map((pos, i) => ({
+      ...pos,
+      day: activeDays[i],
+    }));
+  }, [theme, recentDays]);
+
+  // ─── 픽셀 테마: 스페이스 인베이더 실루엣 격자 계산 ──────────────────────
+  const pixelCells = useMemo(() => {
+    if (theme !== 'pixel') return { filled: [], empty: [] };
+
+    // 19×14 스페이스 인베이더 픽셀 맵 (1=셀, 0=배경)
+    const MAP = [
+      [0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0],
+      [0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0],
+      [0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0],
+      [0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0],
+      [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+      [0,1,1,1,0,0,1,1,1,1,1,1,1,0,0,1,1,1,0],
+      [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1],
+      [0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
+      [0,0,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,0,0],
+      [0,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,0],
+      [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    ];
+
+    const STEP = 14; // 셀 크기(12) + 간격(2)
+    const allPos = [];
+
+    for (let row = 0; row < MAP.length; row++) {
+      for (let col = 0; col < MAP[row].length; col++) {
+        if (MAP[row][col] === 1) {
+          allPos.push({ px: col * STEP, py: row * STEP });
+        }
+      }
+    }
+    // 위→아래, 왼→오른 순서 (시간순) = 커밋 데이터가 자연스럽게 매핑
+    const activeDays = recentDays.filter(d => d.count > 0);
+    const fillCount  = Math.min(activeDays.length, allPos.length);
+
+    return {
+      filled: allPos.slice(0, fillCount).map((pos, i) => ({ ...pos, day: activeDays[i] })),
+      empty:  allPos.slice(fillCount),
+    };
+  }, [theme, recentDays]);
 
   if (!recentDays || recentDays.length === 0) {
     return (
@@ -200,19 +286,15 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     const hasCommits = activeDays.length > 0;
     const message    = getTreeMessage(totalCommits);
 
-    // ★ 6번: H 축소 (땅 영역 줄이기)
     const W      = 500;
     const H      = 420;
     const cx     = W / 2;
     const crownR = 85 * sizeScale;
 
-    // ★ 5번: crownCY를 아래로 내려 기둥과 자연스럽게 맞닿도록
     const minTopMargin = 65;
-    const crownCY = Math.max(minTopMargin + crownR, 190);
-
-    const trunkW = Math.round(14 + sizeScale * 6);
-    const trunkH = Math.round(60 + sizeScale * 12);
-    // ★ 5번: 기둥이 잔디 하단에 딱 맞닿도록 (+2px 약간의 겹침)
+    const crownCY  = Math.max(minTopMargin + crownR, 190);
+    const trunkW   = Math.round(14 + sizeScale * 6);
+    const trunkH   = Math.round(60 + sizeScale * 12);
     const trunkTop = Math.round(crownCY + crownR) - 12;
     const groundY  = trunkTop + trunkH;
     const groundH  = H - groundY;
@@ -225,15 +307,20 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
           style={{ display: 'block', maxWidth: '100%' }}
           preserveAspectRatio="xMidYMid meet"
         >
-          {/* 하늘 */}
+          {/* 하늘 배경 */}
           <rect x={0} y={0} width={W} height={groundY} fill="#dbeafe" />
 
-          {/* ★ 4번: 유저 이름 fontSize 축소 13→11 */}
+          {/* 태양: 심플 pulse */}
+          <circle cx={SUN_X} cy={SUN_Y} r={18} fill="#fde68a" opacity="0.18">
+            <animate attributeName="r" values="16;22;16" dur="3.5s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.14;0.28;0.14" dur="3.5s" repeatCount="indefinite" />
+          </circle>
+          <circle cx={SUN_X} cy={SUN_Y} r={13} fill="#fbbf24" />
+
           <text x={14} y={24} fontSize="11" fill="#334155" fontWeight="700" fontFamily="system-ui, sans-serif">
             {username}님의 GitHub
           </text>
 
-          {/* 상태 메시지 */}
           {message !== '' && (
             <text x={cx} y={42} fontSize="12" fill="#166534" fontWeight="700" textAnchor="middle" fontFamily="system-ui, sans-serif">
               {message}
@@ -243,19 +330,17 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
           {/* 구름 */}
           <ellipse cx={75}  cy={78} rx={36} ry={16} fill="white" opacity="0.75" />
           <ellipse cx={105} cy={70} rx={26} ry={14} fill="white" opacity="0.75" />
-          <ellipse cx={400} cy={88} rx={30} ry={14} fill="white" opacity="0.65" />
-          <ellipse cx={426} cy={80} rx={20} ry={12} fill="white" opacity="0.65" />
+          <ellipse cx={300} cy={88} rx={30} ry={14} fill="white" opacity="0.60" />
+          <ellipse cx={326} cy={80} rx={20} ry={12} fill="white" opacity="0.60" />
 
           {/* 땅 */}
           <rect x={0} y={groundY}     width={W} height={groundH} fill="#86efac" />
           <rect x={0} y={groundY}     width={W} height={5}       fill="#4ade80" />
           <rect x={0} y={groundY + 5} width={W} height={4}       fill="#22c55e" opacity="0.5" />
 
-          {/* 기둥 그림자 */}
+          {/* 나무 기둥 */}
           <rect x={cx - trunkW / 2 + 3} y={trunkTop + 4} width={trunkW} height={trunkH} rx={4} fill="#000" opacity="0.08" />
-          {/* 기둥 */}
-          <rect x={cx - trunkW / 2} y={trunkTop} width={trunkW} height={trunkH} rx={4} fill="#92400e" />
-          {/* 기둥 하이라이트 */}
+          <rect x={cx - trunkW / 2}     y={trunkTop}     width={trunkW} height={trunkH} rx={4} fill="#92400e" />
           <rect x={cx - trunkW / 2 + 4} y={trunkTop + 10} width={Math.max(Math.floor(trunkW / 4), 3)} height={trunkH - 20} rx={2} fill="#fbbf24" opacity="0.25" />
 
           {!hasCommits && (
@@ -264,12 +349,9 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
             </text>
           )}
 
-          {/* 잎 그림자 */}
           {leafPositions.map((day, i) => (
             <circle key={`shadow-${i}`} cx={cx + day.x + 2} cy={crownCY + day.y + 2} r={4} fill="#000" opacity="0.06" />
           ))}
-
-          {/* 잎사귀 */}
           {leafPositions.map((day, i) => (
             <circle
               key={`leaf-${i}`}
@@ -281,14 +363,12 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
             />
           ))}
 
-          {/* 총 커밋 수 */}
           <text x={cx} y={groundY + 20} fontSize="10" fill="#166534" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">
             총 {totalCommits.toLocaleString()}커밋
           </text>
 
-          {/* 하단 문구 */}
           {!forExport && (
-            <text x={cx} y={H - 8} fontSize="10" fill="#166534" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">
+            <text x={cx} y={H - 8} fontSize="10" fill="#166634" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">
               잔디를 많이 모을수록 나무가 더 커져요!
             </text>
           )}
@@ -327,7 +407,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     );
   }
 
-  // ===== 달(우주) 테마 렌더링 =================================================
+  // ===== 달 테마 렌더링 =======================================================
   if (theme === 'space') {
     const W       = 500;
     const H       = 420;
@@ -343,50 +423,43 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
           style={{ display: 'block', maxWidth: '100%' }}
           preserveAspectRatio="xMidYMid meet"
         >
-          {/* 배경 */}
           <rect x={0} y={0} width={W} height={H} fill="#0f0f1a" />
 
-          {/* 별 */}
-          {stars.map((s, i) => (
+          {/* 무작위 위치에서 나타났다 사라지는 별 */}
+          {liveStars.map((s) => (
             <circle
-              key={`star-${i}`}
+              key={s.id}
               className="star-twinkle"
               cx={s.x} cy={s.y} r={s.r}
               fill="white"
-              style={{ animationDuration: `${s.dur}s`, animationDelay: `${s.delay}s` }}
+              style={{ animationDuration: `${s.dur}s` }}
             />
           ))}
 
-          {/* ★ 3번: 유저 이름 x 왼쪽으로 이동 20 → 14 */}
           <text x={14} y={22} fontSize="12" fill="#818cf8" fontWeight="700" fontFamily="system-ui, sans-serif">
             {username}님의 GitHub
           </text>
 
-          {/* 상태 메시지 */}
           {message !== '' && (
             <text x={cx} y={44} fontSize="11" fill="#a5b4fc" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">
               {message}
             </text>
           )}
 
-          {/* ★ 2번: 달 윤곽선/배경 완전 제거 — 잔디 셀만으로 달 형태 표현 */}
-
-          {/* ★ 1번 + 2번: count > 0인 날만, 어두운 남색→회청색, 완전한 원형 셀 */}
-          {moonDayMap.map(({ x, y, day }, i) => (
+          {moonCells.map(({ x, y, day }, i) => (
             <circle
               key={`cell-${i}`}
               cx={cx + x} cy={cy + y}
-              r={3.5}
+              r={MOON_CELL_R}
               fill={getColor(day.count)}
               opacity={0.92}
-              onMouseEnter={(e) => setTooltip({ day, x: e.clientX, y: e.clientY })}
-              onMouseLeave={() => setTooltip(null)}
-              style={{ cursor: 'pointer' }}
+              onMouseEnter={day.date ? (e) => setTooltip({ day, x: e.clientX, y: e.clientY }) : undefined}
+              onMouseLeave={day.date ? () => setTooltip(null) : undefined}
+              style={{ cursor: day.date ? 'pointer' : 'default' }}
             />
           ))}
 
-          {/* 총 커밋 */}
-          <text x={cx} y={H - 16} fontSize="10" fill="#6ee7b7" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">
+          <text x={cx} y={H - 16} fontSize="10" fill="#a78bfa" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">
             총 {totalCommits.toLocaleString()}커밋
           </text>
         </svg>
@@ -425,7 +498,112 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     );
   }
 
-  // ===== 기본 테마들 렌더링 ====================================================
+  // ===== 픽셀 테마 렌더링 (스페이스 인베이더 실루엣) ==========================
+  if (theme === 'pixel') {
+    const message  = getPixelMessage(totalCommits);
+    const W        = 500;
+    const H        = 420;
+    const CELL     = 12;
+    const STEP     = 14;
+    const INV_COLS = 19;
+    const invW     = INV_COLS * STEP; // 266
+    const startX   = Math.round((W - invW) / 2); // 117
+    const startY   = 100;
+
+    return (
+      <div style={{
+        backgroundColor: '#0d0d0d',
+        borderRadius: '12px',
+        padding: '16px',
+        position: 'relative',
+      }}>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          width="100%"
+          style={{ display: 'block', maxWidth: '100%' }}
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <rect x={0} y={0} width={W} height={H} fill="#0d0d0d" />
+
+          {/* 스캔라인 */}
+          {Array.from({ length: Math.ceil(H / 4) }, (_, i) => (
+            <line key={`sl-${i}`} x1={0} y1={i * 4} x2={W} y2={i * 4}
+              stroke="rgba(0,255,65,0.02)" strokeWidth="1.5" />
+          ))}
+
+          {/* 유저명 — 다른 테마와 동일한 폰트/위치 */}
+          <text x={14} y={22} fontSize="11" fill="#00ff41" fontWeight="700" fontFamily="system-ui, sans-serif">
+            {username}님의 GitHub
+          </text>
+
+          {/* 상태 메시지 */}
+          <text x={W / 2} y={46} fontSize="10" fill="#00aa33" fontWeight="600"
+            textAnchor="middle" fontFamily='"Courier New", Courier, monospace' letterSpacing="0.12em">
+            {message}
+          </text>
+
+          {/* 빈 인베이더 셀 (어두운 실루엣) */}
+          {pixelCells.empty.map(({ px, py }, i) => (
+            <rect key={`pe-${i}`}
+              x={startX + px} y={startY + py}
+              width={CELL} height={CELL}
+              fill="#0d2a0d" rx={1}
+            />
+          ))}
+
+          {/* 채워진 인베이더 셀 (커밋 데이터) */}
+          {pixelCells.filled.map(({ px, py, day }, i) => (
+            <rect key={`pf-${i}`}
+              x={startX + px} y={startY + py}
+              width={CELL} height={CELL}
+              fill={getColor(day.count)} rx={1}
+              onMouseEnter={(e) => setTooltip({ day, x: e.clientX, y: e.clientY })}
+              onMouseLeave={() => setTooltip(null)}
+              style={{ cursor: 'pointer' }}
+            />
+          ))}
+
+          {/* 총 커밋 */}
+          <text x={W / 2} y={H - 16} fontSize="10" fill="#00ff41" fontWeight="600"
+            textAnchor="middle" fontFamily="system-ui, sans-serif">
+            총 {totalCommits.toLocaleString()}커밋
+          </text>
+        </svg>
+
+        {tooltip && (
+          <div style={{
+            position: 'fixed', left: tooltip.x + 12, top: tooltip.y - 36,
+            backgroundColor: '#0a1a0a', color: '#00ff41',
+            border: '1px solid #00ff41',
+            padding: '6px 10px', borderRadius: '3px',
+            fontSize: '11px', fontWeight: '500',
+            fontFamily: '"Courier New", Courier, monospace',
+            pointerEvents: 'none', zIndex: 50, whiteSpace: 'nowrap',
+          }}>
+            {tooltip.day.date} · {tooltip.day.count}커밋
+          </div>
+        )}
+
+        {!forExport && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: '6px', marginTop: '8px',
+            fontSize: '11px', color: '#00ff41', fontWeight: '500',
+          }}>
+            <span>현생</span>
+            <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+              {[themeConfig.empty, ...themeConfig.colors].map((c, i) => (
+                <div key={i} style={{ width: '10px', height: '10px', backgroundColor: c, borderRadius: '1px' }} />
+              ))}
+            </div>
+            <span>갓생</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ===== 기본 테마 렌더링 (minimal 등) =========================================
   const LABEL_HEIGHT = 18;
   const CELL_GAP     = 14;
   const CELL_SIZE    = 12;

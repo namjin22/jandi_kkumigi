@@ -49,8 +49,8 @@ function App() {
 
   const themes = [
     { key: 'tree_wood', label: '잔디 나무', desc: '나뭇잎에 당신의 잔디를 심어요' },
-    { key: 'space',     label: '달',     desc: '잔디로 가득 찬 달을 만들어요' },
-    { key: 'ocean',     label: '바다',     desc: '바다다다다닷' },
+    { key: 'space',     label: '달',        desc: '잔디로 가득 찬 달을 만들어요' },
+    { key: 'pixel',     label: '픽셀',      desc: '레트로 감성으로 잔디를 채워요' },
   ];
 
   const totalCommits = data ? Object.values(data.total).reduce((a, b) => a + b, 0) : 0;
