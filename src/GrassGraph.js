@@ -73,12 +73,13 @@ function getMoonMessage(commits) {
 }
 
 function getPixelMessage(commits) {
-  if (commits === 0)   return 'INSERT COIN(COMMIT)';
-  if (commits <= 100)  return 'LEVEL 1  슈퍼맨';
-  if (commits <= 500)  return 'LEVEL 2  슈퍼하이퍼맨';
-  if (commits <= 1000) return 'LEVEL 3  슈퍼하이퍼울트라맨';
-  if (commits <= 3000) return 'LEVEL 4  슈퍼하이퍼울트라짱짱맨';
-  return 'LEGEND.';
+  if (commits === 0)   return 'INSERT COIN';
+  if (commits <= 50)   return 'LEVEL 1  BEGINNER';
+  if (commits <= 200)  return 'LEVEL 2  RISING';
+  if (commits <= 500)  return 'LEVEL 3  SKILLED';
+  if (commits <= 1000) return 'LEVEL 4  EXPERT';
+  if (commits <= 3000) return 'LEVEL 5  MASTER';
+  return '** LEGEND CLEAR **';
 }
 
 const MOON_R      = 110;
@@ -182,7 +183,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     return labels;
   }, [weeks]);
 
-  // ─── 나무 테마: 잎 위치 계산 ─────────────────────────────────────────────
+  // ─── 나무 테마: 잎 위치 계산 ───────────────────────────────────────────
   const leafPositions = useMemo(() => {
     if (theme !== 'tree_wood') return [];
     const activeDays = recentDays.filter(d => d.count > 0);
@@ -204,7 +205,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     }));
   }, [recentDays, theme, sizeScale]);
 
-  // ─── 달 테마: 셀 위치 + 잔디 데이터 매핑 ────────────────────────────────
+  // ─── 달 테마: 셀 위치 + 잔디 데이터 매핑 ──────────────────────────────
   const moonCells = useMemo(() => {
     if (theme !== 'space') return [];
 
@@ -230,11 +231,11 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     }));
   }, [theme, recentDays]);
 
-  // ─── 픽셀 테마: 스페이스 인베이더 실루엣 격자 계산 ──────────────────────
+  // ─── 픽셀 테마: 인베이더 실루엣 격자 계산 ──────────────────────────────
   const pixelCells = useMemo(() => {
     if (theme !== 'pixel') return { filled: [], empty: [] };
 
-    // 19×14 스페이스 인베이더 픽셀 맵 (1=셀, 0=배경)
+    // 19×14 픽셀 맵 (1=셀, 0=배경)
     const MAP = [
       [0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0],
       [0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0],
@@ -252,7 +253,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
       [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     ];
 
-    const STEP = 14; // 셀 크기(12) + 간격(2)
+    const STEP = 14;
     const allPos = [];
 
     for (let row = 0; row < MAP.length; row++) {
@@ -262,7 +263,6 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
         }
       }
     }
-    // 위→아래, 왼→오른 순서 (시간순) = 커밋 데이터가 자연스럽게 매핑
     const activeDays = recentDays.filter(d => d.count > 0);
     const fillCount  = Math.min(activeDays.length, allPos.length);
 
@@ -280,7 +280,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     );
   }
 
-  // ===== 나무 테마 렌더링 =====================================================
+  // ===== 나무 테마 렌더링 ====================================================
   if (theme === 'tree_wood') {
     const activeDays = recentDays.filter(d => d.count > 0);
     const hasCommits = activeDays.length > 0;
@@ -307,7 +307,6 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
           style={{ display: 'block', maxWidth: '100%' }}
           preserveAspectRatio="xMidYMid meet"
         >
-          {/* 하늘 배경 */}
           <rect x={0} y={0} width={W} height={groundY} fill="#dbeafe" />
 
           {/* 태양: 심플 pulse */}
@@ -333,7 +332,6 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
           <ellipse cx={300} cy={88} rx={30} ry={14} fill="white" opacity="0.60" />
           <ellipse cx={326} cy={80} rx={20} ry={12} fill="white" opacity="0.60" />
 
-          {/* 땅 */}
           <rect x={0} y={groundY}     width={W} height={groundH} fill="#86efac" />
           <rect x={0} y={groundY}     width={W} height={5}       fill="#4ade80" />
           <rect x={0} y={groundY + 5} width={W} height={4}       fill="#22c55e" opacity="0.5" />
@@ -407,7 +405,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     );
   }
 
-  // ===== 달 테마 렌더링 =======================================================
+  // ===== 달 테마 렌더링 ======================================================
   if (theme === 'space') {
     const W       = 500;
     const H       = 420;
@@ -498,7 +496,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     );
   }
 
-  // ===== 픽셀 테마 렌더링 (스페이스 인베이더 실루엣) ==========================
+  // ===== 픽셀 테마 렌더링 ====================================================
   if (theme === 'pixel') {
     const message  = getPixelMessage(totalCommits);
     const W        = 500;
@@ -506,8 +504,8 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     const CELL     = 12;
     const STEP     = 14;
     const INV_COLS = 19;
-    const invW     = INV_COLS * STEP; // 266
-    const startX   = Math.round((W - invW) / 2); // 117
+    const invW   = INV_COLS * STEP;
+    const startX = Math.round((W - invW) / 2);
     const startY   = 100;
 
     return (
@@ -531,12 +529,10 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
               stroke="rgba(0,255,65,0.02)" strokeWidth="1.5" />
           ))}
 
-          {/* 유저명 — 다른 테마와 동일한 폰트/위치 */}
           <text x={14} y={22} fontSize="11" fill="#00ff41" fontWeight="700" fontFamily="system-ui, sans-serif">
             {username}님의 GitHub
           </text>
 
-          {/* 상태 메시지 */}
           <text x={W / 2} y={46} fontSize="10" fill="#00aa33" fontWeight="600"
             textAnchor="middle" fontFamily='"Courier New", Courier, monospace' letterSpacing="0.12em">
             {message}
@@ -603,7 +599,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     );
   }
 
-  // ===== 기본 테마 렌더링 (minimal 등) =========================================
+  // ===== 기본 테마 렌더링 ====================================================
   const LABEL_HEIGHT = 18;
   const CELL_GAP     = 14;
   const CELL_SIZE    = 12;
