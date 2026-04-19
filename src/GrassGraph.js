@@ -65,21 +65,20 @@ function getTreeMessage(commits) {
 
 function getMoonMessage(commits) {
   if (commits === 0)   return '';
-  if (commits <= 100)  return '달이 어디 있나요..?';
-  if (commits <= 500)  return '달이 아직 작네요..';
+  if (commits <= 100)  return '달이 너무 작아요..';
+  if (commits <= 500)  return '달이 보여요..!';
   if (commits <= 1000) return '달이 조금씩 빛나요!';
   if (commits <= 3000) return '달이 눈부시게 빛나요!';
   return '완벽한 보름달이에요!';
 }
 
 function getPixelMessage(commits) {
-  if (commits === 0)   return 'INSERT COIN';
-  if (commits <= 50)   return 'LEVEL 1  BEGINNER';
-  if (commits <= 200)  return 'LEVEL 2  RISING';
-  if (commits <= 500)  return 'LEVEL 3  SKILLED';
-  if (commits <= 1000) return 'LEVEL 4  EXPERT';
+  if (commits === 0)   return 'INSERT COMMIT';
+  if (commits <= 100)  return 'LEVEL 2  BABO';
+  if (commits <= 500)  return 'LEVEL 3  CHOBO';
+  if (commits <= 1000) return 'LEVEL 4  GOSU';
   if (commits <= 3000) return 'LEVEL 5  MASTER';
-  return '** LEGEND CLEAR **';
+  return 'LEGEND.';
 }
 
 const MOON_R      = 110;
@@ -141,7 +140,12 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
       .sort((a, b) => (a.date < b.date ? -1 : 1));
   }, [contributions]);
 
-  const sizeScale = useMemo(() => getSizeScale(totalCommits), [totalCommits]);
+  const yearCommits = useMemo(() => {
+    if (!contributions || !contributions.total) return 0;
+    return contributions.total[new Date().getFullYear()] || 0;
+  }, [contributions]);
+
+  const sizeScale = useMemo(() => getSizeScale(yearCommits), [yearCommits]);
 
   const getColor = (count) => {
     if (count === 0) return themeConfig.empty;
@@ -284,7 +288,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
   if (theme === 'tree_wood') {
     const activeDays = recentDays.filter(d => d.count > 0);
     const hasCommits = activeDays.length > 0;
-    const message    = getTreeMessage(totalCommits);
+    const message    = getTreeMessage(yearCommits);
 
     const W      = 500;
     const H      = 420;
@@ -292,7 +296,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     const crownR = 85 * sizeScale;
 
     const minTopMargin = 65;
-    const crownCY  = Math.max(minTopMargin + crownR, 190);
+    const crownCY  = Math.max(minTopMargin + crownR, 190) + crownR * 0.5;
     const trunkW   = Math.round(14 + sizeScale * 6);
     const trunkH   = Math.round(60 + sizeScale * 12);
     const trunkTop = Math.round(crownCY + crownR) - 12;
@@ -362,7 +366,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
           ))}
 
           <text x={cx} y={groundY + 20} fontSize="10" fill="#166534" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">
-            총 {totalCommits.toLocaleString()}커밋
+            올해 {yearCommits.toLocaleString()}커밋
           </text>
 
           {!forExport && (
@@ -411,7 +415,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
     const H       = 420;
     const cx      = W / 2;
     const cy      = H / 2 + 10;
-    const message = getMoonMessage(totalCommits);
+    const message = getMoonMessage(yearCommits);
 
     return (
       <div style={{ backgroundColor: '#0f0f1a', borderRadius: '12px', padding: '16px', position: 'relative' }}>
@@ -458,7 +462,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
           ))}
 
           <text x={cx} y={H - 16} fontSize="10" fill="#a78bfa" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">
-            총 {totalCommits.toLocaleString()}커밋
+            올해 {yearCommits.toLocaleString()}커밋
           </text>
         </svg>
 
@@ -498,7 +502,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
 
   // ===== 픽셀 테마 렌더링 ====================================================
   if (theme === 'pixel') {
-    const message  = getPixelMessage(totalCommits);
+    const message  = getPixelMessage(yearCommits);
     const W        = 500;
     const H        = 420;
     const CELL     = 12;
@@ -562,7 +566,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
           {/* 총 커밋 */}
           <text x={W / 2} y={H - 16} fontSize="10" fill="#00ff41" fontWeight="600"
             textAnchor="middle" fontFamily="system-ui, sans-serif">
-            총 {totalCommits.toLocaleString()}커밋
+            올해 {yearCommits.toLocaleString()}커밋
           </text>
         </svg>
 
