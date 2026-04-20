@@ -55,7 +55,7 @@ function getSizeScale(commits) {
 }
 
 function getTreeMessage(commits) {
-  if (commits <= 1)    return '?';
+  if (commits === 1)    return '?';
   if (commits <= 100)  return '나뭇잎이 곧 떨어지겠어요..';
   if (commits <= 500)  return '나무가 점점 커지고 있어요!';
   if (commits <= 1000) return '나무가 가득 차 보여요!';
