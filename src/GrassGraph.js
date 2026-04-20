@@ -351,10 +351,10 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
             </text>
           )}
 
-          {leafPositions.map((day, i) => (
+          {yearCommits > 0 && leafPositions.map((day, i) => (
             <circle key={`shadow-${i}`} cx={cx + day.x + 2} cy={crownCY + day.y + 2} r={4} fill="#000" opacity="0.06" />
           ))}
-          {leafPositions.map((day, i) => (
+          {yearCommits > 0 && leafPositions.map((day, i) => (
             <circle
               key={`leaf-${i}`}
               cx={cx + day.x} cy={crownCY + day.y}
@@ -369,11 +369,6 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
             올해 {yearCommits.toLocaleString()}커밋
           </text>
 
-          {!forExport && (
-            <text x={cx} y={H - 8} fontSize="10" fill="#166634" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">
-              잔디를 많이 모을수록 나무가 더 커져요!
-            </text>
-          )}
         </svg>
 
         {tooltip && (
@@ -448,7 +443,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
             </text>
           )}
 
-          {moonCells.map(({ x, y, day }, i) => (
+          {yearCommits > 0 && moonCells.map(({ x, y, day }, i) => (
             <circle
               key={`cell-${i}`}
               cx={cx + x} cy={cy + y}
@@ -537,7 +532,7 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
             {username}님의 GitHub
           </text>
 
-          <text x={W / 2} y={46} fontSize="10" fill="#00aa33" fontWeight="600"
+          <text x={W / 2} y={46} fontSize={yearCommits === 0 ? '16' : '10'} fill="#00aa33" fontWeight="600"
             textAnchor="middle" fontFamily='"Courier New", Courier, monospace' letterSpacing="0.12em">
             {message}
           </text>
@@ -551,8 +546,8 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
             />
           ))}
 
-          {/* 채워진 인베이더 셀 (커밋 데이터) */}
-          {pixelCells.filled.map(({ px, py, day }, i) => (
+          {/* 채워진 인베이더 셀 (커밋 데이터) — 커밋 있을 때만 표시 */}
+          {yearCommits > 0 && pixelCells.filled.map(({ px, py, day }, i) => (
             <rect key={`pf-${i}`}
               x={startX + px} y={startY + py}
               width={CELL} height={CELL}
@@ -636,16 +631,12 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
         style={{ display: 'block', maxWidth: '100%' }}
         preserveAspectRatio="xMinYMid meet"
       >
-        <text x={10} y={LABEL_HEIGHT - 12} fontSize="9" fill={themeConfig.labelColor} fontWeight="800" fontFamily="system-ui, sans-serif">
-          {username}님의 GitHub
-        </text>
-
         {monthLabels.map(({ weekIdx, text, isYear }) => {
           const x = weekIdx * CELL_GAP + 10;
           return (
             <g key={`label-${weekIdx}`}>
               <line x1={x} y1={LABEL_HEIGHT - 2} x2={x} y2={svgH - 4} stroke={themeConfig.lineColor} strokeWidth="0.8" />
-              <text x={x + 3} y={LABEL_HEIGHT - 5} fontSize="7" fill={themeConfig.labelColor} fontWeight={isYear ? '700' : '400'} fontFamily="system-ui, sans-serif">
+              <text x={x + 3} y={LABEL_HEIGHT - 5} fontSize="9" fill={themeConfig.labelColor} fontWeight={isYear ? '700' : '400'} fontFamily="system-ui, sans-serif">
                 {text}
               </text>
             </g>
