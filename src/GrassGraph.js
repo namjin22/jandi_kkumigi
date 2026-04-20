@@ -55,25 +55,25 @@ function getSizeScale(commits) {
 }
 
 function getTreeMessage(commits) {
-  if (commits <= 1)    return '';
+  if (commits <= 1)    return '?';
   if (commits <= 100)  return '나뭇잎이 곧 떨어지겠어요..';
   if (commits <= 500)  return '나무가 점점 커지고 있어요!';
   if (commits <= 1000) return '나무가 가득 차 보여요!';
   if (commits <= 3000) return '나무가 거대해요..!';
-  return '축하드려요! 최대 크기입니다.';
+  return '최대 크기 나무에요!';
 }
 
 function getMoonMessage(commits) {
-  if (commits === 0)   return '';
+  if (commits === 0)   return '?';
   if (commits <= 100)  return '달이 너무 작아요..';
   if (commits <= 500)  return '달이 보여요..!';
-  if (commits <= 1000) return '달이 조금씩 빛나요!';
-  if (commits <= 3000) return '달이 눈부시게 빛나요!';
+  if (commits <= 1000) return '달이 눈부시게 빛나요!';
+  if (commits <= 3000) return '이정도면 보름달 아닌가요?';
   return '완벽한 보름달이에요!';
 }
 
 function getPixelMessage(commits) {
-  if (commits === 0)   return 'INSERT COMMIT';
+  if (commits === 0)   return '?';
   if (commits <= 100)  return 'LEVEL 2  BABO';
   if (commits <= 500)  return 'LEVEL 3  CHOBO';
   if (commits <= 1000) return 'LEVEL 4  GOSU';
