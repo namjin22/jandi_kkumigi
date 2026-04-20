@@ -636,10 +636,6 @@ function GrassGraph({ contributions, theme = 'minimal', totalCommits = 0, userna
         style={{ display: 'block', maxWidth: '100%' }}
         preserveAspectRatio="xMinYMid meet"
       >
-        <text x={10} y={LABEL_HEIGHT - 12} fontSize="9" fill={themeConfig.labelColor} fontWeight="800" fontFamily="system-ui, sans-serif">
-          {username}님의 GitHub
-        </text>
-
         {monthLabels.map(({ weekIdx, text, isYear }) => {
           const x = weekIdx * CELL_GAP + 10;
           return (

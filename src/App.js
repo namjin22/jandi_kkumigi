@@ -11,7 +11,7 @@ function App() {
   const [showGraph, setShowGraph]         = useState(false);
   const [graphTheme, setGraphTheme]       = useState('minimal');
   const [searchedUsername, setSearchedUsername] = useState('');
-  const exportRef = useRef(null); // 이미지 저장 전용 (숨겨진) ref
+  const [profileHover, setProfileHover]   = useState(false);
 
   const fetchGitHubData = async () => {
     if (!username.trim()) { setError('GitHub 아이디를 입력해 주세요!'); return; }
@@ -119,10 +119,19 @@ function App() {
           <div style={{ width: '100%' }}>
 
             {/* 프로필 카드 */}
-            <div style={{
-              backgroundColor: '#fff', border: '1.5px solid #e2e8f0',
-              borderRadius: '10px', padding: '18px 24px', marginBottom: '24px',
-            }}>
+            <div
+              onClick={() => { if (graphTheme !== 'minimal') { setGraphTheme('minimal'); setTheme(null); } }}
+              onMouseEnter={() => setProfileHover(true)}
+              onMouseLeave={() => setProfileHover(false)}
+              style={{
+                backgroundColor: '#fff', border: '1.5px solid',
+                borderColor: profileHover && graphTheme !== 'minimal' ? '#93c5fd' : '#e2e8f0',
+                borderRadius: '10px', padding: '18px 24px', marginBottom: '24px',
+                cursor: graphTheme !== 'minimal' ? 'pointer' : 'default',
+                transition: 'border-color 0.15s, box-shadow 0.15s',
+                boxShadow: profileHover && graphTheme !== 'minimal' ? '0 0 0 3px #dbeafe' : 'none',
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                 <img
                   src={`https://github.com/${searchedUsername}.png?size=56`}
