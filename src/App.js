@@ -11,6 +11,7 @@ function App() {
   const [showGraph, setShowGraph]         = useState(false);
   const [graphTheme, setGraphTheme]       = useState('minimal');
   const [searchedUsername, setSearchedUsername] = useState('');
+  const exportRef = useRef(null); // 이미지 저장 전용 (숨겨진) ref
   const [profileHover, setProfileHover]   = useState(false);
 
   const fetchGitHubData = async () => {
