@@ -74,10 +74,10 @@ function getMoonMessage(commits) {
 
 function getPixelMessage(commits) {
   if (commits === 0)   return '?';
-  if (commits <= 100)  return 'LEVEL 2  BABO';
-  if (commits <= 500)  return 'LEVEL 3  CHOBO';
-  if (commits <= 1000) return 'LEVEL 4  GOSU';
-  if (commits <= 3000) return 'LEVEL 5  MASTER';
+  if (commits <= 100)  return 'LEVEL 1  BABO';
+  if (commits <= 500)  return 'LEVEL 2  CHOBO';
+  if (commits <= 1000) return 'LEVEL 3  GOSU';
+  if (commits <= 3000) return 'LEVEL 4  MASTER';
   return 'LEGEND.';
 }
 
